@@ -59,8 +59,9 @@ expenseSchema.index({ userId: 1, date: -1 });
 
 expenseSchema.set("toJSON", {
   transform: (_doc, ret) => {
-    delete ret.__v;
-    return ret;
+    const r = ret as unknown as Record<string, unknown>;
+    delete r["__v"];
+    return r;
   },
 });
 

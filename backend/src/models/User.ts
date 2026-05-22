@@ -42,9 +42,10 @@ const userSchema = new mongoose.Schema<IUser>(
 // This runs before any toJSON/toObject call — good for API responses.
 userSchema.set("toJSON", {
   transform: (_doc, ret) => {
-    delete ret.password;
-    delete ret.__v;
-    return ret;
+    const r = ret as unknown as Record<string, unknown>;
+    delete r["password"];
+    delete r["__v"];
+    return r;
   },
 });
 

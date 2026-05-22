@@ -1,0 +1,59 @@
+version: "3.9"
+
+# Three services:
+# - mongo: the database (no app code, just the official image)
+# - backend: Express API (waits for mongo to be healthy before starting)
+# - frontend: React dev server with Vite proxy to backend
+#
+# In development, use the frontend service for hot reload.
+# In production, build the frontend Dockerfile separately.
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db   # persist data between container restarts
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      target: builder   # use builder stage so we get tsx for dev
+    working_dir: /app
+    command: npm run dev
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      MONGODB_URI: mongodb://mongo:27017/expense-tracker
+      JWT_SECRET: dev-jwt-secret-change-in-production
+      JWT_EXPIRES_IN: 7d
+    volumes:
+      - ./backend/src:/app/src   # mount source for hot reload
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      target: builder
+    working_dir: /app
+    command: npm run dev -- --host
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend/src:/app/src
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
