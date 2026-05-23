@@ -1,14 +1,14 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { ProtectedRoute } from "../../components/ProtectedRoute";
+import { ProtectedRoute } from "../components/ProtectedRoute";
 
 // Mock useAuth so we control the auth state in each test
-vi.mock("../../store/AuthContext", () => ({
+vi.mock("../store/AuthContext", () => ({
   useAuth: vi.fn(),
 }));
 
-import { useAuth } from "../../store/AuthContext";
+import { useAuth } from "../store/AuthContext";
 
 describe("ProtectedRoute", () => {
   it("renders children when authenticated", () => {

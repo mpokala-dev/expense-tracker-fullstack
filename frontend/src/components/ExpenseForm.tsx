@@ -1,7 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { EXPENSE_CATEGORIES, type ExpenseFormData, type Expense } from "../types/index";
+import { EXPENSE_CATEGORIES, type ExpenseCategory, type ExpenseFormData, type Expense } from "../types/index";
 
 // Zod schema defines validation rules once — react-hook-form uses it automatically.
 // The same schema could be imported by the backend in a monorepo.
@@ -9,7 +9,7 @@ const expenseSchema = z.object({
   title: z.string().min(1, "Title is required").max(100),
   amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
   category: z.enum(
-    EXPENSE_CATEGORIES as [string, ...string[]],
+    EXPENSE_CATEGORIES as [ExpenseCategory, ...ExpenseCategory[]],
     { errorMap: () => ({ message: "Please select a category" }) }
   ),
   date: z.string().min(1, "Date is required"),
