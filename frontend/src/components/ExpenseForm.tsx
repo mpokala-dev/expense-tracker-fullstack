@@ -5,14 +5,31 @@ import { EXPENSE_CATEGORIES, type ExpenseCategory, type ExpenseFormData, type Ex
 
 // Zod schema defines validation rules once — react-hook-form uses it automatically.
 // The same schema could be imported by the backend in a monorepo.
+function getTodayString_UTC() {
+  return new Date().toISOString().substring(0, 10);
+}
+console.log("Today's date (UTC):", getTodayString_UTC()); // Debug: check today's date in UTC
+function getTodayString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 const expenseSchema = z.object({
   title: z.string().min(1, "Title is required").max(100),
-  amount: z.coerce.number().min(0.01, "Amount must be greater than 0"),
+  amount: z.coerce
+    .number()
+    .multipleOf(0.01, "Amount can have at most 2 decimal places")
+    .min(0.01, "Amount must be at least £0.01"),
   category: z.enum(
     EXPENSE_CATEGORIES as [ExpenseCategory, ...ExpenseCategory[]],
     { errorMap: () => ({ message: "Please select a category" }) }
   ),
-  date: z.string().min(1, "Date is required"),
+  date: z
+    .string()
+    .min(1, "Date is required")
+    .refine((val) => val <= getTodayString(), "Date cannot be in the future"),
   notes: z.string().max(500).optional(),
 });
 
@@ -70,7 +87,7 @@ export function ExpenseForm({ expense, onSubmit, onCancel }: Props) {
 
         <div style={styles.field}>
           <label style={styles.label}>Date</label>
-          <input {...register("date")} type="date" style={styles.input} />
+          <input {...register("date")} type="date" style={styles.input} max={getTodayString()} />
           {errors.date && <span style={styles.error}>{errors.date.message}</span>}
         </div>
       </div>
