@@ -6,7 +6,9 @@ import axios from "axios";
 // - Response interceptor handles 401s in one place (redirects to login)
 // - Consistent error shape across all API calls
 const api = axios.create({
-  baseURL: "/api", // Vite proxy forwards /api/* → localhost:3001 in dev
+  baseURL: import.meta.env.VITE_API_URL
+    ? `${import.meta.env.VITE_API_URL}/api`
+    : "/api", // Vite proxy forwards /api/* → localhost:3001 in dev
   headers: {
     "Content-Type": "application/json",
   },
