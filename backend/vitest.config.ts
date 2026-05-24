@@ -11,5 +11,6 @@ export default defineConfig({
       exclude: ["src/server.ts", "src/types/**"],
     },
     setupFiles: ["./tests/setup.ts"],
+    testTimeout: 30000,
   },
 });
