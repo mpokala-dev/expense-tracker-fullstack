@@ -1,6 +1,8 @@
 # Expense Tracker — Full-Stack
 
-A full-stack expense tracking application built with React, Node.js, Express, MongoDB, JWT authentication, Docker, and CI/CD.
+A full-stack expense tracking application built with React, Node.js, Express, MongoDB, JWT authentication, Docker, and CI/CD.![CI](https://github.com/mpokala-dev/expense-tracker-fullstack/actions/workflows/ci.yml/badge.svg)
+
+🔗 **Live Demo:** https://expense-tracker-fullstack-fawn.vercel.app
 
 ## Tech Stack
 
