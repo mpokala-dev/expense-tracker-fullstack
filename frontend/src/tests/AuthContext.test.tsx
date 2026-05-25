@@ -62,4 +62,23 @@ describe("AuthContext", () => {
     expect(result.current.token).toBe("stored-token");
     expect(result.current.user?.email).toBe("test@example.com");
   });
+
+  it("cleans up corrupt stored auth data and starts unauthenticated", () => {
+    localStorage.setItem("token", "bad-token");
+    localStorage.setItem("user", "not-json");
+
+    const { result } = renderHook(() => useAuth(), { wrapper });
+
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.token).toBeNull();
+    expect(result.current.user).toBeNull();
+    expect(localStorage.getItem("token")).toBeNull();
+    expect(localStorage.getItem("user")).toBeNull();
+  });
+
+  it("throws when useAuth is called outside AuthProvider", () => {
+    expect(() => renderHook(() => useAuth())).toThrow(
+      "useAuth must be used within an AuthProvider"
+    );
+  });
 });

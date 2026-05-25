@@ -64,19 +64,20 @@ export function ExpenseForm({ expense, onSubmit, onCancel }: Props) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
-      <h2 style={styles.heading}>{expense ? "Edit Expense" : "Add Expense"}</h2>
+      <h2 data-testid="form-heading" style={styles.heading}>{expense ? "Edit Expense" : "Add Expense"}</h2>
 
       <div style={styles.field}>
-        <label style={styles.label}>Title</label>
-        <input {...register("title")} style={styles.input} placeholder="e.g. Coffee" />
+        <label htmlFor="title" style={styles.label}>Title</label>
+        <input {...register("title")} id="title" style={styles.input} placeholder="e.g. Coffee" />
         {errors.title && <span style={styles.error}>{errors.title.message}</span>}
       </div>
 
       <div style={styles.row}>
         <div style={styles.field}>
-          <label style={styles.label}>Amount (£)</label>
+          <label htmlFor="amount" style={styles.label}>Amount (£)</label>
           <input
             {...register("amount")}
+            id="amount"
             type="number"
             step="0.01"
             style={styles.input}
@@ -86,15 +87,15 @@ export function ExpenseForm({ expense, onSubmit, onCancel }: Props) {
         </div>
 
         <div style={styles.field}>
-          <label style={styles.label}>Date</label>
-          <input {...register("date")} type="date" style={styles.input} max={getTodayString()} />
+          <label htmlFor="date" style={styles.label}>Date</label>
+          <input {...register("date")} id="date" type="date" style={styles.input} max={getTodayString()} />
           {errors.date && <span style={styles.error}>{errors.date.message}</span>}
         </div>
       </div>
 
       <div style={styles.field}>
-        <label style={styles.label}>Category</label>
-        <select {...register("category")} style={styles.input}>
+        <label htmlFor="category" style={styles.label}>Category</label>
+        <select {...register("category")} id="category" style={styles.input}>
           <option value="">Select a category</option>
           {EXPENSE_CATEGORIES.map((cat) => (
             <option key={cat} value={cat}>
@@ -106,8 +107,8 @@ export function ExpenseForm({ expense, onSubmit, onCancel }: Props) {
       </div>
 
       <div style={styles.field}>
-        <label style={styles.label}>Notes (optional)</label>
-        <textarea {...register("notes")} style={{ ...styles.input, height: "80px" }} />
+        <label htmlFor="notes" style={styles.label}>Notes (optional)</label>
+        <textarea {...register("notes")} id="notes" style={{ ...styles.input, height: "80px" }} />
         {errors.notes && <span style={styles.error}>{errors.notes.message}</span>}
       </div>
 

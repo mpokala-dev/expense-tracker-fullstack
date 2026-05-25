@@ -44,14 +44,14 @@ export function LoginPage() {
 
         <form onSubmit={handleSubmit(onSubmit)} style={styles.form} noValidate>
           <div style={styles.field}>
-            <label style={styles.label}>Email</label>
-            <input {...register("email")} type="email" style={styles.input} />
+            <label htmlFor="email" style={styles.label}>Email</label>
+            <input {...register("email")} id="email" type="email" style={styles.input} />
             {errors.email && <span style={styles.error}>{errors.email.message}</span>}
           </div>
 
           <div style={styles.field}>
-            <label style={styles.label}>Password</label>
-            <input {...register("password")} type="password" style={styles.input} />
+            <label htmlFor="password" style={styles.label}>Password</label>
+            <input {...register("password")} id="password" type="password" style={styles.input} />
             {errors.password && <span style={styles.error}>{errors.password.message}</span>}
           </div>
 
