@@ -1,5 +1,6 @@
 import type { Response, NextFunction } from "express";
-import type { AuthRequest } from "../types/index";
+import type { AuthRequest, ExpenseCategory } from "../types/index";
+import { EXPENSE_CATEGORIES } from "../types/index";
 import * as expenseService from "../services/expenseService";
 
 // userId is guaranteed to exist here because the authenticate middleware
@@ -11,8 +12,29 @@ export async function getExpenses(
   next: NextFunction
 ): Promise<void> {
   try {
-    const expenses = await expenseService.getExpenses(req.userId!);
-    res.json({ success: true, data: expenses });
+    const { category, startDate, endDate, page, limit } = req.query as Record<string, string>;
+
+    if (category && !EXPENSE_CATEGORIES.includes(category as ExpenseCategory)) {
+      res.status(400).json({
+        success: false,
+        message: `Invalid category. Must be one of: ${EXPENSE_CATEGORIES.join(", ")}`,
+      });
+      return;
+    }
+console.log("Received query parameters:", { category, startDate, endDate, page, limit });
+    const pageNum = page ? Math.max(1, parseInt(page, 5)) : 1;
+    const limitNum = limit ? Math.min(100, Math.max(1, parseInt(limit, 10))) : 5;
+    console.log("Parsed pagination parameters:", { pageNum, limitNum });
+
+    const result = await expenseService.getExpenses(req.userId!, {
+      category: category as ExpenseCategory | undefined,
+      startDate,
+      endDate,
+      page: pageNum,
+      limit: limitNum,
+    });
+
+    res.json({ success: true, data: result });
   } catch (error) {
     next(error);
   }

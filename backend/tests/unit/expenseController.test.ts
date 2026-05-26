@@ -25,6 +25,7 @@ function mockReq(overrides = {}): AuthRequest {
     userId: "user-123",
     body: {},
     params: {},
+    query: {},
     ...overrides,
   } as AuthRequest;
 }
@@ -42,16 +43,71 @@ const mockExpense = {
   updatedAt: new Date(),
 };
 
+const mockPaginatedResult = {
+  expenses: [mockExpense],
+  pagination: { total: 1, page: 1, limit: 5, totalPages: 1 },
+};
+
 describe("expenseController.getExpenses", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("returns expenses list", async () => {
-    vi.mocked(expenseService.getExpenses).mockResolvedValue([mockExpense] as any);
+  it("returns paginated expenses with default params", async () => {
+    vi.mocked(expenseService.getExpenses).mockResolvedValue(mockPaginatedResult as any);
     const res = mockRes();
 
     await expenseController.getExpenses(mockReq(), res, next);
 
-    expect(res.json).toHaveBeenCalledWith({ success: true, data: [mockExpense] });
+    expect(res.json).toHaveBeenCalledWith({ success: true, data: mockPaginatedResult });
+    expect(expenseService.getExpenses).toHaveBeenCalledWith("user-123", {
+      category: undefined,
+      startDate: undefined,
+      endDate: undefined,
+      page: 1,
+      limit: 5,
+    });
+  });
+
+  it("passes category filter to service", async () => {
+    vi.mocked(expenseService.getExpenses).mockResolvedValue(mockPaginatedResult as any);
+    const res = mockRes();
+    const req = mockReq({ query: { category: "food" } });
+
+    await expenseController.getExpenses(req, res, next);
+
+    expect(expenseService.getExpenses).toHaveBeenCalledWith("user-123", expect.objectContaining({ category: "food" }));
+  });
+
+  it("returns 400 for invalid category", async () => {
+    const res = mockRes();
+    const req = mockReq({ query: { category: "invalid" } });
+
+    await expenseController.getExpenses(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(expenseService.getExpenses).not.toHaveBeenCalled();
+  });
+
+  it("passes date filters to service", async () => {
+    vi.mocked(expenseService.getExpenses).mockResolvedValue(mockPaginatedResult as any);
+    const res = mockRes();
+    const req = mockReq({ query: { startDate: "2024-01-01", endDate: "2024-01-31" } });
+
+    await expenseController.getExpenses(req, res, next);
+
+    expect(expenseService.getExpenses).toHaveBeenCalledWith("user-123", expect.objectContaining({
+      startDate: "2024-01-01",
+      endDate: "2024-01-31",
+    }));
+  });
+
+  it("passes page and limit to service", async () => {
+    vi.mocked(expenseService.getExpenses).mockResolvedValue(mockPaginatedResult as any);
+    const res = mockRes();
+    const req = mockReq({ query: { page: "2", limit: "3" } });
+
+    await expenseController.getExpenses(req, res, next);
+
+    expect(expenseService.getExpenses).toHaveBeenCalledWith("user-123", expect.objectContaining({ page: 2, limit: 3 }));
   });
 
   it("calls next() on error", async () => {

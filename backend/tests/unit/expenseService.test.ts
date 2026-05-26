@@ -8,6 +8,7 @@ vi.mock("../../src/models/Expense", () => ({
     create: vi.fn(),
     findOneAndUpdate: vi.fn(),
     findOneAndDelete: vi.fn(),
+    countDocuments: vi.fn(),
   },
 }));
 
@@ -27,19 +28,71 @@ const mockExpense = {
   updatedAt: new Date(),
 };
 
+// Helper to mock the Expense.find chained query: .find().sort().skip().limit()
+function mockFindChain(results: typeof mockExpense[]) {
+  vi.mocked(Expense.find).mockReturnValue({
+    sort: vi.fn().mockReturnValue({
+      skip: vi.fn().mockReturnValue({
+        limit: vi.fn().mockResolvedValue(results),
+      }),
+    }),
+  } as any);
+}
+
 describe("expenseService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("getExpenses returns expenses sorted by date desc", async () => {
-    vi.mocked(Expense.find).mockReturnValue({
-      sort: vi.fn().mockResolvedValue([mockExpense]),
-    } as any);
+  it("getExpenses returns paginated expenses with default pagination", async () => {
+    mockFindChain([mockExpense]);
+    vi.mocked(Expense.countDocuments).mockResolvedValue(1);
 
     const result = await expenseService.getExpenses(userId);
     expect(Expense.find).toHaveBeenCalledWith({ userId });
-    expect(result).toHaveLength(1);
+    expect(result.expenses).toHaveLength(1);
+    expect(result.pagination).toEqual({ total: 1, page: 1, limit: 5, totalPages: 1 });
+  });
+
+  it("getExpenses filters by category", async () => {
+    mockFindChain([mockExpense]);
+    vi.mocked(Expense.countDocuments).mockResolvedValue(1);
+
+    await expenseService.getExpenses(userId, { category: "food" });
+    expect(Expense.find).toHaveBeenCalledWith({ userId, category: "food" });
+  });
+
+  it("getExpenses filters by startDate and endDate", async () => {
+    let capturedFilter: unknown;
+    (Expense.find as any).mockImplementation((filter: unknown) => {
+      capturedFilter = filter;
+      return {
+        sort: vi.fn().mockReturnValue({
+          skip: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      } as any;
+    });
+    vi.mocked(Expense.countDocuments).mockResolvedValue(0);
+
+    await expenseService.getExpenses(userId, {
+      startDate: "2024-01-01",
+      endDate: "2024-01-31",
+    });
+
+    const filter = capturedFilter as Record<string, unknown>;
+    expect(filter).toHaveProperty("date");
+    expect((filter["date"] as Record<string, unknown>)["$gte"]).toBeInstanceOf(Date);
+    expect((filter["date"] as Record<string, unknown>)["$lte"]).toBeInstanceOf(Date);
+  });
+
+  it("getExpenses respects custom page and limit", async () => {
+    mockFindChain([]);
+    vi.mocked(Expense.countDocuments).mockResolvedValue(25);
+
+    const result = await expenseService.getExpenses(userId, { page: 2, limit: 3 });
+    expect(result.pagination).toEqual({ total: 25, page: 2, limit: 3, totalPages: 9 });
   });
 
   it("createExpense creates and returns an expense", async () => {

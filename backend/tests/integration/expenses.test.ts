@@ -34,7 +34,7 @@ describe("GET /api/expenses", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
-    expect(res.body.data).toEqual([]);
+    expect(res.body.data.expenses).toEqual([]);
   });
 
   it("returns 401 without a token", async () => {
@@ -193,7 +193,7 @@ describe("DELETE /api/expenses/:id", () => {
       .get("/api/expenses")
       .set("Authorization", `Bearer ${token}`);
 
-    expect(check.body.data).toHaveLength(0);
+    expect(check.body.data.expenses).toHaveLength(0);
   });
 
   it("returns 404 when expense does not exist", async () => {

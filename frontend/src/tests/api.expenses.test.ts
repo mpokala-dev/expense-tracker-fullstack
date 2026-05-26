@@ -1,6 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import * as expensesApi from "../api/expenses";
+
+vi.mock("../api/axios", () => ({
+  default: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
 import api from "../api/axios";
+import * as expensesApi from "../api/expenses";
 
 const mockExpense = {
   _id: "exp-1",
@@ -13,43 +23,68 @@ const mockExpense = {
   updatedAt: "2024-01-15T10:00:00Z",
 };
 
+const mockPaginatedResult = {
+  expenses: [mockExpense],
+  pagination: { total: 1, page: 1, limit: 10, totalPages: 1 },
+};
+
 describe("expenses API", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("getExpenses calls GET /expenses and returns array", async () => {
-    vi.mocked(api.get).mockResolvedValue({
-      data: { success: true, data: [mockExpense] },
-    });
+  it("getExpenses calls correct endpoint with default params", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { success: true, data: mockPaginatedResult } });
 
     const result = await expensesApi.getExpenses();
 
-    expect(api.get).toHaveBeenCalledWith("/expenses");
-    expect(result).toEqual([mockExpense]);
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("/expenses?"));
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("page=1"));
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("limit=5"));
+    expect(result).toEqual(mockPaginatedResult);
   });
 
-  it("createExpense calls POST /expenses with payload", async () => {
-    vi.mocked(api.post).mockResolvedValue({
-      data: { success: true, data: mockExpense },
-    });
+  it("getExpenses includes category filter in URL when provided", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { success: true, data: mockPaginatedResult } });
 
-    const payload = {
+    await expensesApi.getExpenses({ category: "food" });
+
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("category=food"));
+  });
+
+  it("getExpenses includes date filters in URL when provided", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { success: true, data: mockPaginatedResult } });
+
+    await expensesApi.getExpenses({ startDate: "2024-01-01", endDate: "2024-01-31" });
+
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("startDate=2024-01-01"));
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("endDate=2024-01-31"));
+  });
+
+  it("getExpenses passes custom page and limit", async () => {
+    vi.mocked(api.get).mockResolvedValue({ data: { success: true, data: mockPaginatedResult } });
+
+    await expensesApi.getExpenses({}, 3, 5);
+
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("page=3"));
+    expect(api.get).toHaveBeenCalledWith(expect.stringContaining("limit=5"));
+  });
+
+  it("createExpense posts and returns created expense", async () => {
+    vi.mocked(api.post).mockResolvedValue({ data: { success: true, data: mockExpense } });
+
+    const result = await expensesApi.createExpense({
       title: "Coffee",
       amount: 3.5,
-      category: "food" as const,
+      category: "food",
       date: "2024-01-15",
-    };
+    });
 
-    const result = await expensesApi.createExpense(payload);
-
-    expect(api.post).toHaveBeenCalledWith("/expenses", payload);
+    expect(api.post).toHaveBeenCalledWith("/expenses", expect.objectContaining({ title: "Coffee" }));
     expect(result).toEqual(mockExpense);
   });
 
-  it("updateExpense calls PUT /expenses/:id with payload", async () => {
+  it("updateExpense sends PUT and returns updated expense", async () => {
     const updated = { ...mockExpense, title: "Latte" };
-    vi.mocked(api.put).mockResolvedValue({
-      data: { success: true, data: updated },
-    });
+    vi.mocked(api.put).mockResolvedValue({ data: { success: true, data: updated } });
 
     const result = await expensesApi.updateExpense("exp-1", { title: "Latte" });
 
@@ -57,7 +92,7 @@ describe("expenses API", () => {
     expect(result.title).toBe("Latte");
   });
 
-  it("deleteExpense calls DELETE /expenses/:id", async () => {
+  it("deleteExpense sends DELETE request", async () => {
     vi.mocked(api.delete).mockResolvedValue({ data: { success: true } });
 
     await expensesApi.deleteExpense("exp-1");

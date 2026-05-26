@@ -23,15 +23,24 @@ const mockExpense = {
   updatedAt: "2024-01-15T10:00:00Z",
 };
 
+const mockPaginatedResult = {
+  expenses: [mockExpense],
+  pagination: { total: 1, page: 1, limit: 5, totalPages: 1 },
+};
+
+const emptyPaginatedResult = {
+  expenses: [],
+  pagination: { total: 0, page: 1, limit: 5, totalPages: 0 },
+};
+
 describe("useExpenses hook", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("fetches expenses on mount and sets loading state correctly", async () => {
-    vi.mocked(expensesApi.getExpenses).mockResolvedValue([mockExpense]);
+    vi.mocked(expensesApi.getExpenses).mockResolvedValue(mockPaginatedResult);
 
     const { result } = renderHook(() => useExpenses());
 
-    // Initially loading
     expect(result.current.isLoading).toBe(true);
 
     await waitFor(() => {
@@ -39,6 +48,7 @@ describe("useExpenses hook", () => {
     });
 
     expect(result.current.expenses).toEqual([mockExpense]);
+    expect(result.current.pagination).toEqual(mockPaginatedResult.pagination);
     expect(result.current.error).toBeNull();
   });
 
@@ -55,13 +65,43 @@ describe("useExpenses hook", () => {
     expect(result.current.expenses).toEqual([]);
   });
 
-  it("createExpense adds new expense to the list", async () => {
-    vi.mocked(expensesApi.getExpenses).mockResolvedValue([]);
+  it("setFilters resets page to 1 and refetches", async () => {
+    vi.mocked(expensesApi.getExpenses).mockResolvedValue(mockPaginatedResult);
+
+    const { result } = renderHook(() => useExpenses());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setFilters({ category: "food", startDate: "", endDate: "" });
+    });
+
+    expect(result.current.currentPage).toBe(1);
+    expect(result.current.filters.category).toBe("food");
+  });
+
+  it("setCurrentPage updates page number", async () => {
+    vi.mocked(expensesApi.getExpenses).mockResolvedValue(mockPaginatedResult);
+
+    const { result } = renderHook(() => useExpenses());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.setCurrentPage(3);
+    });
+
+    expect(result.current.currentPage).toBe(3);
+  });
+
+  it("createExpense refetches list (resets to page 1)", async () => {
+    vi.mocked(expensesApi.getExpenses).mockResolvedValue(mockPaginatedResult);
     vi.mocked(expensesApi.createExpense).mockResolvedValue(mockExpense);
 
     const { result } = renderHook(() => useExpenses());
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    // Move to page 2 first
+    act(() => result.current.setCurrentPage(2));
+    expect(result.current.currentPage).toBe(2);
 
     await act(async () => {
       await result.current.createExpense({
@@ -72,17 +112,16 @@ describe("useExpenses hook", () => {
       });
     });
 
-    expect(result.current.expenses).toHaveLength(1);
-    expect(result.current.expenses[0].title).toBe("Coffee");
+    // Should reset to page 1
+    expect(result.current.currentPage).toBe(1);
   });
 
   it("updateExpense updates the correct expense in the list", async () => {
-    vi.mocked(expensesApi.getExpenses).mockResolvedValue([mockExpense]);
+    vi.mocked(expensesApi.getExpenses).mockResolvedValue(mockPaginatedResult);
     const updated = { ...mockExpense, title: "Latte" };
     vi.mocked(expensesApi.updateExpense).mockResolvedValue(updated);
 
     const { result } = renderHook(() => useExpenses());
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
@@ -92,18 +131,21 @@ describe("useExpenses hook", () => {
     expect(result.current.expenses[0].title).toBe("Latte");
   });
 
-  it("deleteExpense removes the expense from the list", async () => {
-    vi.mocked(expensesApi.getExpenses).mockResolvedValue([mockExpense]);
+  it("deleteExpense refetches the list", async () => {
+    vi.mocked(expensesApi.getExpenses)
+      .mockResolvedValueOnce(mockPaginatedResult)
+      .mockResolvedValueOnce(emptyPaginatedResult);
     vi.mocked(expensesApi.deleteExpense).mockResolvedValue(undefined);
 
     const { result } = renderHook(() => useExpenses());
-
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     await act(async () => {
       await result.current.deleteExpense("exp-1");
     });
 
-    expect(result.current.expenses).toHaveLength(0);
+    await waitFor(() => {
+      expect(result.current.expenses).toHaveLength(0);
+    });
   });
 });

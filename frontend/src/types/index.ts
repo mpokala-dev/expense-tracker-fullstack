@@ -75,3 +75,21 @@ export interface ExpenseFormData {
   date: string;
   notes?: string;
 }
+
+export interface ExpenseFilters {
+  category: ExpenseCategory | "";
+  startDate: string;
+  endDate: string;
+}
+
+export interface Pagination {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginatedExpenses {
+  expenses: Expense[];
+  pagination: Pagination;
+}

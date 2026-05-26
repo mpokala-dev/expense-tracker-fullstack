@@ -61,3 +61,23 @@ export interface ApiResponse<T = undefined> {
   message?: string;
   errors?: string[];
 }
+
+// Query params for filtering and paginating expenses
+export interface ExpenseQuery {
+  category?: ExpenseCategory;
+  startDate?: string;
+  endDate?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Paginated response wrapper
+export interface PaginatedExpenses {
+  expenses: ExpenseResponse[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
